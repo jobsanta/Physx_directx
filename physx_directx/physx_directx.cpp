@@ -51,7 +51,9 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 PhysxApp::PhysxApp(HINSTANCE hInstance)
-	: mhAppInst(hInstance),
+	:
+	hInstance(hInstance),
+	g_hWnd(0),
 	mMainWndCaption(L"PhysX Application"),
 	g_driverType(D3D_DRIVER_TYPE_HARDWARE),
 	mClientWidth(800),
@@ -89,9 +91,13 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
+	PhysxApp theApp(hInstance);
+	theApp.nCmdShow = nCmdShow;
+	if (!theApp.Init())
+		return 0;
 
-
-
+	return theApp.Run();
+	
 }
 
 bool PhysxApp::Init()
@@ -99,7 +105,7 @@ bool PhysxApp::Init()
 	if (!InitMainWindow())
 		return false;
 
-	if (!InitDevice())
+	if (FAILED(InitDevice()))
 		return false;
 
 	InitializePhysX();
@@ -111,11 +117,6 @@ bool PhysxApp::Init()
 bool PhysxApp::InitMainWindow()
 {
 	WNDCLASSEX wcex;
-
-	// Initialize global strings
-	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadString(hInstance, IDC_PHYSX_DIRECTX, szWindowClass, MAX_LOADSTRING);
-
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
@@ -127,7 +128,7 @@ bool PhysxApp::InitMainWindow()
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = MAKEINTRESOURCE(IDC_PHYSX_DIRECTX);
-	wcex.lpszClassName = szWindowClass;
+	wcex.lpszClassName = L"Physx_DirectX_Class";
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 	if (!RegisterClassEx(&wcex))
@@ -136,7 +137,7 @@ bool PhysxApp::InitMainWindow()
 		return false;
 	}
 
-	g_hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	g_hWnd = CreateWindow(L"Physx_DirectX_Class", L"Physx_DirectX", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
 	if (!g_hWnd)
@@ -172,29 +173,10 @@ int PhysxApp::Run()
 		}
 	}
 
-	CleanupDevice();
-	ShutdownPhysX();
-
 
 	return (int)msg.wParam;
 
 }
-
-
-
-
-//
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE:  Processes messages for the main window.
-//
-//  WM_COMMAND	- process the application menu
-//  WM_PAINT	- Paint the main window
-//  WM_DESTROY	- post a quit message and return
-//
-//
-
-
 
 LRESULT PhysxApp::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -247,7 +229,6 @@ LRESULT PhysxApp::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return 0;
 }
-
 
 void PhysxApp::UpdateScene(float dt)
 {
@@ -459,8 +440,12 @@ void PhysxApp::InitializePhysX() {
 
 void PhysxApp::ShutdownPhysX() {
 
-	gScene->removeActor(*box);
-	gScene->release();
+	if (gScene != NULL)
+	{
+		gScene->removeActor(*box);
+		gScene->release();
+	}
+	if (gPhysicsSDK)
 	gPhysicsSDK->release();
 
 }

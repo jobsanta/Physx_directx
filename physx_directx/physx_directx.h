@@ -48,10 +48,14 @@ public:
     PhysxApp(HINSTANCE hInstance);
     ~PhysxApp();
 
-    HINSTANCE           AppInst()const;
-    HWND                MainWnd()const;
     float               AspectRatio() const;
 	LRESULT				MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	HINSTANCE           hInstance;								         //current instance
+	HWND                g_hWnd = nullptr;
+
+
+	int nCmdShow;
+
 
 	bool Init();
 	bool InitMainWindow();
@@ -63,12 +67,11 @@ public:
 	static PxDefaultAllocator        gDefaultAllocatorCallback;
 	static PxSimulationFilterShader  gDefaultFilterShader;
 	static PxFoundation*             gFoundation;
+
+	TCHAR               szTitle[MAX_LOADSTRING];					 //The title bar text
+	TCHAR               szWindowClass[MAX_LOADSTRING];			     //the main window class name
+
 protected:
-	HINSTANCE           hInstance;								         //current instance
-    HWND                g_hWnd = nullptr;
-    TCHAR               szTitle[MAX_LOADSTRING];					 //The title bar text
-    TCHAR               szWindowClass[MAX_LOADSTRING];			     //the main window class name
-	int nCmdShow;
 
 
 
@@ -83,7 +86,6 @@ protected:
 
 
 
-	HINSTANCE     mhAppInst;
 	HWND          mhMainWnd;
 	bool          mAppPaused;
 	bool          mMinimized;
