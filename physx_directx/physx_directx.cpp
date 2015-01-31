@@ -5,9 +5,6 @@
 #include "physx_directx.h"
 #include <windowsx.h>
 
-
-
-
 PxPhysics*                PhysxApp::gPhysicsSDK = NULL;
 PxDefaultErrorCallback    PhysxApp::gDefaultErrorCallback;
 PxDefaultAllocator        PhysxApp::gDefaultAllocatorCallback;
@@ -47,32 +44,20 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-
-
-
 PhysxApp::PhysxApp(HINSTANCE hInstance)
 	:
 	hInstance(hInstance),
 	g_hWnd(0),
-	mMainWndCaption(L"PhysX Application"),
-	g_driverType(D3D_DRIVER_TYPE_HARDWARE),
-	mClientWidth(800),
-	mClientHeight(600),
-	mEnable4xMsaa(false),
-	mhMainWnd(0),
-	mAppPaused(false),
-	mMinimized(false),
-	mMaximized(false),
-	mResizing(false),
-	m4xMsaaQuality(0),
-
+	nWidth(800),
+	nHeight(600),
 	g_pd3dDevice(0),
 	g_pd3dDevice1(0),
 	g_pImmediateContext(0),
 	g_pSwapChain(0),
 	g_pSwapChain1(0),
 	g_pRenderTargetView(0),
-	g_pBatchInputLayout(0)
+	g_pBatchInputLayout(0),
+	theConnection(0)
 {
 	app = this;
 }
@@ -97,7 +82,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		return 0;
 
 	return theApp.Run();
-	
 }
 
 bool PhysxApp::Init()
@@ -130,15 +114,14 @@ bool PhysxApp::InitMainWindow()
 	wcex.lpszMenuName = MAKEINTRESOURCE(IDC_PHYSX_DIRECTX);
 	wcex.lpszClassName = L"Physx_DirectX_Class";
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
+	
 	if (!RegisterClassEx(&wcex))
 	{
 		MessageBox(0, L"RegisterClass Failed.", 0, 0);
 		return false;
 	}
 
-	g_hWnd = CreateWindow(L"Physx_DirectX_Class", L"Physx_DirectX", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	g_hWnd = CreateWindow(L"Physx_DirectX_Class", L"Physx_DirectX", WS_OVERLAPPEDWINDOW,nWidth, 0,nHeight, 0, NULL, NULL, hInstance, NULL);
 
 	if (!g_hWnd)
 	{
@@ -172,8 +155,7 @@ int PhysxApp::Run()
 			Render();
 		}
 	}
-
-
+	
 	return (int)msg.wParam;
 
 }
@@ -278,6 +260,113 @@ void PhysxApp::OnMouseMove(WPARAM btnState, int x, int y)
 	mLastMousePos.y = y;
 }
 
+bool PhysxApp::PickActor(int x, int y)
+{
+	LetGoActor();
+
+	Ray ray;
+	XMVECTOR vector1 = XMVector3Unproject(
+		XMVectorSet(x, y, 0.0f, 1.0f),
+		0.0f,
+		0.0f,
+		nWidth,
+		nHeight,
+		0.0f,
+		1.0f,
+		g_Projection,
+		g_View,
+		g_World);
+
+	XMVECTOR vector2 = XMVector3Unproject(
+		XMVectorSet(x, y, 1.0f, 1.0f),
+		0.0f,
+		0.0f,
+		nWidth,
+		nHeight,
+		0.0f,
+		1.0f,
+		g_Projection,
+		g_View,
+		g_World);
+
+	XMVECTOR normalize = XMVector4Normalize(vector2);
+	ray.orig = PxVec3(XMVectorGetX(vector1), XMVectorGetY(vector1), XMVectorGetZ(vector1));
+	ray.dir = PxVec3(XMVectorGetX(normalize), XMVectorGetY(normalize), XMVectorGetZ(normalize));
+	ray.distance = XMVectorGetX( XMVector4Length(vector2) );
+
+	PxRaycastBuffer hit;
+	bool status = gScene->raycast(ray.orig, ray.dir, ray.distance, hit);
+
+	if (!hit.hasBlock) return false;
+	PxRigidActor* actor = hit.block.actor;
+	if (!actor->isRigidDynamic()) return false;
+
+	//int hitx, hity;
+	//XMVECTOR hitVector;
+	//XMStoreFloat3(&XMFLOAT3(hit.block.position.x, hit.block.position.y, hit.block.position.z),hitVector);
+	//XMVector3Project(hitVector,
+	//	0.0f,
+	//	0.0f,
+	//	nWidth,
+	//	nHeight,
+	//	0.0f,
+	//	1.0f,
+	//	g_Projection,
+	//	g_View,
+	//	g_World);
+	//ViewProject(hit.block.position, hitx, hity, gMouseDepth);
+	gMouseSphere = CreateSphere(hit.block.position, 0.1f, 1.0f);
+	gMouseSphere->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+
+	gSelectedActor = (PxRigidDynamic*)hit.block.actor;
+	gSelectedActor->wakeUp();
+
+	PxTransform mFrame, sFrame;
+	mFrame.q = gMouseSphere->getGlobalPose().q;
+	mFrame.p = gMouseSphere->getGlobalPose().transformInv(hit.block.position);
+	sFrame.q = gSelectedActor->getGlobalPose().q;
+	sFrame.p = gSelectedActor->getGlobalPose().transformInv(hit.block.position);
+
+	gMouseJoint = PxDistanceJointCreate(*gPhysicsSDK, gMouseSphere, mFrame, gSelectedActor, sFrame);
+
+	gMouseJoint->setDamping(1);
+	gMouseJoint->setStiffness(200);
+	gMouseJoint->setMinDistance(0);
+	gMouseJoint->setMaxDistance(0);
+	gMouseJoint->setDistanceJointFlag(PxDistanceJointFlag::eMAX_DISTANCE_ENABLED, true);
+	gMouseJoint->setDistanceJointFlag(PxDistanceJointFlag::eSPRING_ENABLED, true);
+
+	return true;
+}
+
+void PhysxApp::LetGoActor()
+{
+	if (gMouseJoint)
+		gMouseJoint->release();
+	gMouseJoint = NULL;
+
+	if (gMouseSphere)
+		gMouseSphere->release();
+	gMouseSphere = NULL;
+}
+
+
+PxRigidDynamic* PhysxApp::CreateSphere(const PxVec3& pos, const PxReal radius, const PxReal density)
+{
+	PxTransform transform(pos, PxQuat::createIdentity());
+	PxSphereGeometry geometry(radius);
+
+	PxMaterial* mMaterial = gPhysicsSDK->createMaterial(0.5, 0.5, 0.5);
+
+	PxRigidDynamic* actor = PxCreateDynamic(*gPhysicsSDK, transform, geometry, *mMaterial, density);
+	if (!actor)
+		cerr << "create actor failed" << endl;
+	actor->setAngularDamping(0.75);
+	actor->setLinearVelocity(PxVec3(0, 0, 0));
+	gScene->addActor(*actor);
+	return actor;
+}
+
 void PhysxApp::StepPhysX()
 {
 	gScene->simulate(myTimestep);
@@ -318,8 +407,8 @@ XMMATRIX PhysxApp::PxtoXMMatrix(PxTransform input)
 	return mat;
 }
 
-
-void PhysxApp::DrawBox(PxShape* pShape, PxRigidActor* actor) {
+void PhysxApp::DrawBox(PxShape* pShape, PxRigidActor* actor)
+{
 	PxTransform pT = PxShapeExt::getGlobalPose(*pShape,*actor);
 	PxBoxGeometry bg;
 	pShape->getBoxGeometry(bg);
@@ -335,6 +424,8 @@ void PhysxApp::DrawShape(PxShape* shape, PxRigidActor* actor)
 	case PxGeometryType::eBOX:
 		DrawBox(shape,actor);
 		break;
+	case PxGeometryType::eSPHERE:
+		
 	}
 }
 
@@ -353,7 +444,9 @@ void PhysxApp::DrawActor(PxRigidActor* actor)
 
 void PhysxApp::RenderActors()
 {
-	DrawActor(box);
+
+	for (int i = 0; i < boxes.size(); i++)
+		DrawActor(boxes[i]);
 }
 
 void PhysxApp::InitializePhysX() {
@@ -375,9 +468,9 @@ void PhysxApp::InitializePhysX() {
 	//const char* pvd_host_ip = "127.0.0.1";
 	//int port = 5425;
 	//unsigned int timeout = 100;
-	
-	
-	//--- Debugger
+	//
+	//
+	////--- Debugger
 	//PxVisualDebuggerConnectionFlags connectionFlags = PxVisualDebuggerExt::getAllConnectionFlags();
 	//theConnection = PxVisualDebuggerExt::createConnection(gPhysicsSDK->getPvdConnectionManager(),
 	//	pvd_host_ip, port, timeout, connectionFlags);
@@ -394,7 +487,7 @@ void PhysxApp::InitializePhysX() {
 		sceneDesc.cpuDispatcher = mCpuDispatcher;
 	}
 	if (!sceneDesc.filterShader)
-		sceneDesc.filterShader = gDefaultFilterShader;
+		sceneDesc.filterShader  = gDefaultFilterShader;
 
 
 	gScene = gPhysicsSDK->createScene(sceneDesc);
@@ -409,45 +502,58 @@ void PhysxApp::InitializePhysX() {
 
 	//Create actors 
 	//1) Create ground plane
-	PxReal d = 0.0f;
-	PxTransform pose = PxTransform(PxVec3(0.0f, 0, 0.0f), PxQuat(PxHalfPi, PxVec3(0.0f, 0.0f, 1.0f)));
+	PxReal d              = 0.0f;
+	PxTransform pose      = PxTransform(PxVec3(0.0f, 0, 0.0f), PxQuat(PxHalfPi, PxVec3(0.0f, 0.0f, 1.0f)));
 
-	PxRigidStatic* plane = gPhysicsSDK->createRigidStatic(pose);
+	PxRigidStatic* plane  = gPhysicsSDK->createRigidStatic(pose);
 	if (!plane)
 		cerr << "create plane failed!" << endl;
 
-	PxShape* shape = plane->createShape(PxPlaneGeometry(), *mMaterial);
+	PxShape* shape        = plane->createShape(PxPlaneGeometry(), *mMaterial);
 	if (!shape)
 		cerr << "create shape failed!" << endl;
 	gScene->addActor(*plane);
 
 
-	//2) Create cube	 
-	PxReal density = 1.0f;
-	PxTransform transform(PxVec3(0.0f, 10.0f, 0.0f), PxQuat::createIdentity());
-	PxVec3 dimensions(0.5f,0.5f,0.5f);
-	PxBoxGeometry geometry(dimensions);
+	//2)           Create cube	 
+	PxReal         density = 1.0f;
+	PxTransform    transform(PxVec3(0.0f, 10.0f, 0.0f), PxQuat::createIdentity());
+	PxVec3         dimensions(0.5f,0.5f,0.5f);
+	PxBoxGeometry  geometry(dimensions);
 
+	for (int i = 0; i < 10; i++)
+	{
+		transform.p = PxVec3(0.0f, 5.0f + 5 * i, 0.0f);
 		PxRigidDynamic *actor = PxCreateDynamic(*gPhysicsSDK, transform, geometry, *mMaterial, density);
+
 		actor->setAngularDamping(0.75);
 		actor->setLinearVelocity(PxVec3(0, 0, 0));
 		if (!actor)
 			cerr << "create actor failed!" << endl;
 		gScene->addActor(*actor);
+		boxes.push_back(actor);
+	}
 
-		box = actor;
+
 }
 
 void PhysxApp::ShutdownPhysX() {
 
 	if (gScene != NULL)
 	{
-		gScene->removeActor(*box);
-		gScene->release();
-	}
-	if (gPhysicsSDK)
-	gPhysicsSDK->release();
+		for (int i = 0; i < boxes.size(); i++)
+			gScene->removeActor(*boxes[i]);
 
+		gScene->release();
+
+		for (int i = 0; i < boxes.size(); i++)
+			boxes[i]->release();
+	}
+	if (gPhysicsSDK!=NULL)
+		gPhysicsSDK->release();
+	
+	//if (theConnection!=NULL)
+	//	theConnection->release();
 }
 
 HRESULT PhysxApp::InitDevice()
@@ -590,7 +696,39 @@ HRESULT PhysxApp::InitDevice()
 		return hr;
 
 
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, nullptr);
+
+	// Create depth stencil texture
+	D3D11_TEXTURE2D_DESC descDepth;
+	ZeroMemory(&descDepth, sizeof(descDepth));
+	descDepth.Width = width;
+	descDepth.Height = height;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	descDepth.CPUAccessFlags = 0;
+	descDepth.MiscFlags = 0;
+	hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencil);
+	if (FAILED(hr))
+		return hr;
+
+	// Create the depth stencil view
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+	ZeroMemory(&descDSV, sizeof(descDSV));
+	descDSV.Format = descDepth.Format;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Texture2D.MipSlice = 0;
+	hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencil, &descDSV, &g_pDepthStencilView);
+	if (FAILED(hr))
+		return hr;
+
+	std::unique_ptr<CommonStates> states(new CommonStates(g_pd3dDevice));
+	g_pImmediateContext->OMSetDepthStencilState(states->DepthDefault(), 0);
+	g_pImmediateContext->RSSetState(states->CullCounterClockwise());
+	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
@@ -684,17 +822,19 @@ void PhysxApp::DrawGrid(PrimitiveBatch<VertexPositionColor>& batch, FXMVECTOR xA
 
 void PhysxApp::CleanupDevice()
 {
-	if (g_pImmediateContext) g_pImmediateContext->ClearState();
-
-	if (g_pBatchInputLayout) g_pBatchInputLayout->Release();
-
-	if (g_pRenderTargetView) g_pRenderTargetView->Release();
-	if (g_pSwapChain1) g_pSwapChain1->Release();
-	if (g_pSwapChain) g_pSwapChain->Release();
+	if (g_pImmediateContext)  g_pImmediateContext->ClearState();
+	if (g_pBatchInputLayout)  g_pBatchInputLayout->Release();
+	if (g_pDepthStencilView)  g_pDepthStencilView->Release();
+	if (g_pDepthStencil)	  g_pDepthStencil->Release();
+	if (g_pRenderTargetView)  g_pRenderTargetView->Release();
+	if (g_pSwapChain1)        g_pSwapChain1->Release();
+	if (g_pSwapChain)         g_pSwapChain->Release();
 	if (g_pImmediateContext1) g_pImmediateContext1->Release();
-	if (g_pImmediateContext) g_pImmediateContext->Release();
-	if (g_pd3dDevice1) g_pd3dDevice1->Release();
-	if (g_pd3dDevice) g_pd3dDevice->Release();
+	if (g_pImmediateContext)  g_pImmediateContext->Release();
+	if (g_pd3dDevice1)        g_pd3dDevice1->Release();
+	if (g_pd3dDevice)         g_pd3dDevice->Release();
+	
+
 }
 
 void PhysxApp::Render()
@@ -733,6 +873,8 @@ void PhysxApp::Render()
 	}
 
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
+
+	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	const XMVECTORF32 xaxis = { 20.0f, 0.f, 0.f };
 	const XMVECTORF32 yaxis = { 0.f, 0.f, 20.f };

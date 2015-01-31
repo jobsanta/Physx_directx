@@ -1,14 +1,23 @@
 #pragma once
 
 #include "resource.h"
+#include "GameTimer.h"
 #include <iostream>
 #include <windowsx.h>
-#include "GameTimer.h"
+#include <algorithm>
+
 //-- DirecX Library
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+
+//---DirectxTK Library
+#include <Effects.h>
+#include <PrimitiveBatch.h>
+#include <GeometricPrimitive.h>
+#include <VertexTypes.h>
+#include <CommonStates.h>
 
 //-- Utilites Library
 #include "Camera.h"
@@ -27,14 +36,6 @@
 #include <PxVisualDebuggerExt.h>
 
 
-//---DirectxTK Library
-#include <Effects.h>
-#include <PrimitiveBatch.h>
-#include <GeometricPrimitive.h>
-#include <VertexTypes.h>
-
-#include <algorithm>
-
 #define MAX_LOADSTRING 100
 
 
@@ -48,91 +49,77 @@ public:
     PhysxApp(HINSTANCE hInstance);
     ~PhysxApp();
 
+	int                 nCmdShow;
+	int                 nWidth;
+	int                 nHeight;
     float               AspectRatio() const;
-	LRESULT				MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	HINSTANCE           hInstance;								         //current instance
 	HWND                g_hWnd = nullptr;
-
-
-	int nCmdShow;
-
-
-	bool Init();
-	bool InitMainWindow();
-	bool InitDirect3D();
-	int Run();
-
-	static PxPhysics*  gPhysicsSDK;
+	HINSTANCE           hInstance;								         //current instance
+	LRESULT				MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	
+	static PxPhysics*                gPhysicsSDK;
 	static PxDefaultErrorCallback    gDefaultErrorCallback;
 	static PxDefaultAllocator        gDefaultAllocatorCallback;
 	static PxSimulationFilterShader  gDefaultFilterShader;
 	static PxFoundation*             gFoundation;
 
-	TCHAR               szTitle[MAX_LOADSTRING];					 //The title bar text
-	TCHAR               szWindowClass[MAX_LOADSTRING];			     //the main window class name
+	int  Run();
+	bool Init();
+	bool InitMainWindow();
+	bool InitDirect3D();
+
+
 
 protected:
-
-
-
+	//--------------------------------------------------------------------------------------
+    //Physx       
     //--------------------------------------------------------------------------------------
-    //Physx       Global                                        Variables
+	PxScene*              gScene         = NULL;
+    PxReal                myTimestep     = 1.0f / 600.0f;
+    vector<PxRigidActor*> boxes;
+	PxDistanceJoint*      gMouseJoint    = NULL;
+	PxRigidDynamic*       gMouseSphere   = NULL;
+	PxReal                gMouseDepth    = 0.0f;
+	PxRigidDynamic*       gSelectedActor = NULL;
+
+	struct Ray{
+		PxVec3 orig, dir;
+		PxReal distance;
+	};
+
+
+	PxVisualDebuggerConnection* theConnection;
+
+	GameTimer                           mTimer;
     //--------------------------------------------------------------------------------------
-
-
-    PxScene*      gScene                                                       = NULL;
-    PxReal        myTimestep                                                   = 1.0f / 6000.0f;
-    PxRigidActor* box;
-
-
-
-	HWND          mhMainWnd;
-	bool          mAppPaused;
-	bool          mMinimized;
-	bool          mMaximized;
-	bool          mResizing;
-	UINT          m4xMsaaQuality;
-    GameTimer     mTimer;
-
-	//              Derived class should set these in derived constructor to customize starting values.
-	std::wstring    mMainWndCaption;
-	D3D_DRIVER_TYPE md3dDriverType;
-	int             mClientWidth;
-	int             mClientHeight;
-	bool            mEnable4xMsaa;
-
+    //DirectX 
     //--------------------------------------------------------------------------------------
-    //DirectX Global
-    //--------------------------------------------------------------------------------------
-	D3D_DRIVER_TYPE         g_driverType;
-	D3D_FEATURE_LEVEL       g_featureLevel;
-	ID3D11Device*           g_pd3dDevice;
-    ID3D11Device1*          g_pd3dDevice1;
-    ID3D11DeviceContext*    g_pImmediateContext;
-    ID3D11DeviceContext1*   g_pImmediateContext1;
-    IDXGISwapChain*         g_pSwapChain;
-    IDXGISwapChain1*        g_pSwapChain1;
+	D3D_DRIVER_TYPE                     g_driverType;
+	D3D_FEATURE_LEVEL                   g_featureLevel;
+	ID3D11Device*                       g_pd3dDevice;
+    ID3D11Device1*                      g_pd3dDevice1;
+    ID3D11DeviceContext*                g_pImmediateContext;
+    ID3D11DeviceContext1*               g_pImmediateContext1;
+    IDXGISwapChain*                     g_pSwapChain;
+    IDXGISwapChain1*                    g_pSwapChain1;
+	ID3D11Texture2D*                    g_pDepthStencil = nullptr;
+	ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
 
-    ID3D11RenderTargetView* g_pRenderTargetView;
-    ID3D11InputLayout*		g_pBatchInputLayout;
+    ID3D11RenderTargetView*             g_pRenderTargetView;
+    ID3D11InputLayout*		            g_pBatchInputLayout;
+
+
+
+	XMMATRIX                            g_World;
+	XMMATRIX                            g_View;
+	XMMATRIX                            g_Projection;
+	Camera                              mCam;
+	POINT                               mLastMousePos;
 
     std::unique_ptr<BasicEffect>                         g_BatchEffect;
     std::unique_ptr<GeometricPrimitive>                  g_Shape;
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> g_Batch;
-
-
-
-    XMMATRIX                g_World;
-    XMMATRIX                g_View;
-    XMMATRIX                g_Projection;
-    Camera                  mCam;
-    POINT                   mLastMousePos;
-
-
-	ATOM				    MyRegisterClass(HINSTANCE hInstance);
-	BOOL				    InitInstance(HINSTANCE, int);
-
-
+	
 	//DirectX               Function
     HRESULT                 InitDevice();
 	void                    CleanupDevice();
@@ -145,17 +132,22 @@ protected:
 	void                    DrawActor(PxRigidActor* actor);
 	void                    DrawGrid(PrimitiveBatch<VertexPositionColor>& batch, FXMVECTOR xAxis, FXMVECTOR yAxis,
 		                    FXMVECTOR    origin, size_t xdivs, size_t ydivs, GXMVECTOR color);
+	void	                DrawSphere(PxShape* pShape, PxRigidActor* actor);
 	void                    RenderActors();
 
 	//PHYSX                 Function
 	void                    InitializePhysX();
 	void                    ShutdownPhysX();
 	void                    StepPhysX();
+	PxRigidDynamic*         CreateSphere(const PxVec3& pos, const PxReal radius, const PxReal density);
 
 	//Mouse                 Function
 	void                    OnMouseDown(WPARAM btnState, int x, int y);
 	void                    OnMouseUp(WPARAM btnState, int x, int y);
 	void                    OnMouseMove(WPARAM btnState, int x, int y);
+	bool                    PickActor(int x, int y);
+	void                    MoveActor(int x, int y);
+	void                    LetGoActor();
 
 
 	//Helper                Function 
