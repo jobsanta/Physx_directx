@@ -117,7 +117,8 @@ protected:
 	POINT                               mLastMousePos;
 
     std::unique_ptr<BasicEffect>                         g_BatchEffect;
-    std::unique_ptr<GeometricPrimitive>                  g_Shape;
+    std::unique_ptr<GeometricPrimitive>                  g_Box;
+	std::unique_ptr<GeometricPrimitive>                  g_Sphere;
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> g_Batch;
 	
 	//DirectX               Function

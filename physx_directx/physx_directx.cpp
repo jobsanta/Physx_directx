@@ -88,7 +88,6 @@ bool PhysxApp::Init()
 {
 	if (!InitMainWindow())
 		return false;
-
 	if (FAILED(InitDevice()))
 		return false;
 
@@ -100,6 +99,9 @@ bool PhysxApp::Init()
 
 bool PhysxApp::InitMainWindow()
 {
+	RECT wr = { 0, 0, 500, 400 };    // set the size, but not the position
+	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, TRUE);    // adjust the size
+
 	WNDCLASSEX wcex;
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -121,8 +123,8 @@ bool PhysxApp::InitMainWindow()
 		return false;
 	}
 
-	g_hWnd = CreateWindow(L"Physx_DirectX_Class", L"Physx_DirectX", WS_OVERLAPPEDWINDOW,nWidth, 0,nHeight, 0, NULL, NULL, hInstance, NULL);
-
+	g_hWnd = CreateWindow(L"Physx_DirectX_Class", L"Physx_DirectX", WS_OVERLAPPEDWINDOW,0,0,nWidth
+		,nHeight,NULL, NULL, hInstance, NULL);
 	if (!g_hWnd)
 	{
 		MessageBox(0, L"CreateWindow Failed.", 0, 0);
@@ -192,18 +194,25 @@ LRESULT PhysxApp::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
-
 	case WM_LBUTTONDOWN:
+		PickActor(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	case WM_LBUTTONUP:
+		LetGoActor();
+		break;
 	case WM_MBUTTONUP:
 	case WM_RBUTTONUP:
 		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	case WM_MOUSEMOVE:
+		if (gMouseJoint)
+		{
+			MoveActor(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		}
 		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		break;
 	default:
@@ -246,7 +255,7 @@ void PhysxApp::OnMouseUp(WPARAM btnState, int x, int y)
 
 void PhysxApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-	if ((btnState & MK_LBUTTON) != 0)
+	if ((btnState & MK_MBUTTON) != 0)
 	{
 		// Make each pixel correspond to a quarter of a degree.
 		float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
@@ -301,19 +310,21 @@ bool PhysxApp::PickActor(int x, int y)
 	PxRigidActor* actor = hit.block.actor;
 	if (!actor->isRigidDynamic()) return false;
 
-	//int hitx, hity;
-	//XMVECTOR hitVector;
-	//XMStoreFloat3(&XMFLOAT3(hit.block.position.x, hit.block.position.y, hit.block.position.z),hitVector);
-	//XMVector3Project(hitVector,
-	//	0.0f,
-	//	0.0f,
-	//	nWidth,
-	//	nHeight,
-	//	0.0f,
-	//	1.0f,
-	//	g_Projection,
-	//	g_View,
-	//	g_World);
+
+	XMVECTOR hitVector = XMVECTOR();
+	XMStoreFloat3(&XMFLOAT3(hit.block.position.x, hit.block.position.y, hit.block.position.z),hitVector);
+	XMVECTOR hit_screen = XMVector3Project(hitVector,
+		0.0f,
+		0.0f,
+		nWidth,
+		nHeight,
+		0.0f,
+		1.0f,
+		g_Projection,
+		g_View,
+		g_World);
+
+	gMouseDepth = XMVectorGetZ(hit_screen);
 	//ViewProject(hit.block.position, hitx, hity, gMouseDepth);
 	gMouseSphere = CreateSphere(hit.block.position, 0.1f, 1.0f);
 	gMouseSphere->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
@@ -348,6 +359,27 @@ void PhysxApp::LetGoActor()
 	if (gMouseSphere)
 		gMouseSphere->release();
 	gMouseSphere = NULL;
+}
+
+void PhysxApp::MoveActor(int x, int y)
+{
+	if (!gMouseSphere)
+		return;
+	PxVec3 pos;
+	XMVECTOR vector1 = XMVector3Unproject(
+		XMVectorSet(x, y, gMouseDepth, 1.0f),
+		0.0f,
+		0.0f,
+		nWidth,
+		nHeight,
+		0.0f,
+		1.0f,
+		g_Projection,
+		g_View,
+		g_World);
+	pos = PxVec3(XMVectorGetX(vector1), XMVectorGetY(vector1), XMVectorGetZ(vector1));
+
+	gMouseSphere->setGlobalPose(PxTransform(pos));
 }
 
 
@@ -413,7 +445,16 @@ void PhysxApp::DrawBox(PxShape* pShape, PxRigidActor* actor)
 	PxBoxGeometry bg;
 	pShape->getBoxGeometry(bg);
 	XMMATRIX mat = PxtoXMMatrix(pT);
-	g_Shape->Draw(mat, g_View, g_Projection);
+	g_Box->Draw(mat, g_View, g_Projection);
+}
+
+void PhysxApp::DrawSphere(PxShape* pShape, PxRigidActor* actor)
+{
+	PxTransform pT = PxShapeExt::getGlobalPose(*pShape, *actor);
+	PxBoxGeometry bg;
+	pShape->getBoxGeometry(bg);
+	XMMATRIX mat = PxtoXMMatrix(pT);
+	g_Sphere->Draw(mat, g_View, g_Projection);
 }
 
 void PhysxApp::DrawShape(PxShape* shape, PxRigidActor* actor)
@@ -425,7 +466,8 @@ void PhysxApp::DrawShape(PxShape* shape, PxRigidActor* actor)
 		DrawBox(shape,actor);
 		break;
 	case PxGeometryType::eSPHERE:
-		
+		DrawSphere(shape, actor);
+		break;
 	}
 }
 
@@ -447,6 +489,10 @@ void PhysxApp::RenderActors()
 
 	for (int i = 0; i < boxes.size(); i++)
 		DrawActor(boxes[i]);
+
+	if (gMouseSphere) {
+		DrawActor(gMouseSphere);
+	}
 }
 
 void PhysxApp::InitializePhysX() {
@@ -564,6 +610,8 @@ HRESULT PhysxApp::InitDevice()
 	GetClientRect(g_hWnd, &rc);
 	UINT width = rc.right - rc.left;
 	UINT height = rc.bottom - rc.top;
+	nWidth = width;
+	nHeight = height;
 
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -580,7 +628,7 @@ HRESULT PhysxApp::InitDevice()
 
 	D3D_FEATURE_LEVEL featureLevels[] =
 	{
-		D3D_FEATURE_LEVEL_11_1,
+	//	D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0,
 		D3D_FEATURE_LEVEL_10_1,
 		D3D_FEATURE_LEVEL_10_0,
@@ -673,13 +721,14 @@ HRESULT PhysxApp::InitDevice()
 		sd.SampleDesc.Quality = 0;
 		sd.Windowed = TRUE;
 
-		hr = dxgiFactory->CreateSwapChain(g_pd3dDevice, &sd, &g_pSwapChain);
+		hr = dxgiFactory->CreateSwapChain(g_pd3dDevice, &sd, &g_pSwapChain);	
+		// Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
+		dxgiFactory->MakeWindowAssociation(g_hWnd, DXGI_MWA_NO_ALT_ENTER);
+
+		dxgiFactory->Release();
 	}
 
-	// Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
-	dxgiFactory->MakeWindowAssociation(g_hWnd, DXGI_MWA_NO_ALT_ENTER);
 
-	dxgiFactory->Release();
 
 	if (FAILED(hr))
 		return hr;
@@ -767,7 +816,8 @@ HRESULT PhysxApp::InitDevice()
 	g_BatchEffect->SetView(g_View);
 
 
-	g_Shape = GeometricPrimitive::CreateCube(g_pImmediateContext, 1.0f,false);
+	g_Box = GeometricPrimitive::CreateCube(g_pImmediateContext, 1.0f,false);
+	g_Sphere = GeometricPrimitive::CreateSphere(g_pImmediateContext, 0.5f);
 
 	// Initialize the projection matrix
 	//g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);

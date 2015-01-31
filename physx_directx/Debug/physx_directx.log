@@ -1,20 +1,27 @@
-﻿Build started 1/30/2015 13:45:34.
-     1>Project "C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\physx_directx\physx_directx.vcxproj" on node 2 (Build target(s)).
+﻿Build started 1/31/2015 21:17:31.
+     1>Project "C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\physx_directx\physx_directx.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/include/" /ZI /nologo /W3 /WX- /Od /Oy- /D HAS_DIRECTXTK /D WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Debug\physx_directx.pch" /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt physx_directx.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/include/" /ZI /nologo /W3 /WX- /Od /Oy- /D HAS_DIRECTXTK /D WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Debug\physx_directx.pch" /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt physx_directx.cpp
          physx_directx.cpp
-     1>c:\users\sthanyadit\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(338): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\sthanyadit\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(434): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\sthanyadit\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(439): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(278): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(287): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(290): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(299): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(325): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(370): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(379): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(490): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(590): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\job\documents\visual studio 2013\projects\physx_directx\physx_directx\physx_directx.cpp(595): warning C4018: '<' : signed/unsigned mismatch
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.exe" /INCREMENTAL /NOLOGO "C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/lib/Win32/Debug/DirectXTKAudioDX.lib" "C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/lib/Win32/Debug/DirectXTK.lib" d3d11.lib d3dcompiler.lib dxguid.lib winmm.lib comctl32.lib PhysX3CHECKED_x86.lib PhysX3CommonCHECKED_x86.lib PhysX3ExtensionsCHECKED.lib PhysXVisualDebuggerSDKCHECKED.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.lib" /MACHINE:X86 Debug\physx_directx.res
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.exe" /INCREMENTAL /NOLOGO "C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/lib/Win32/Debug/DirectXTKAudioDX.lib" "C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\packages\directxtk_desktop_2013.2014.11.24.2\build\native\../../build/native/lib/Win32/Debug/DirectXTK.lib" d3d11.lib d3dcompiler.lib dxguid.lib winmm.lib comctl32.lib PhysX3CHECKED_x86.lib PhysX3CommonCHECKED_x86.lib PhysX3ExtensionsCHECKED.lib PhysXVisualDebuggerSDKCHECKED.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.lib" /MACHINE:X86 Debug\physx_directx.res
          Debug\Camera.obj
          Debug\GameTimer.obj
          Debug\physx_directx.obj
          Debug\stdafx.obj
-         physx_directx.vcxproj -> C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.exe
-     1>Done Building Project "C:\Users\sthanyadit\Documents\Visual Studio 2013\Projects\physx_directx\physx_directx\physx_directx.vcxproj" (Build target(s)).
+         physx_directx.vcxproj -> C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\Debug\physx_directx.exe
+     1>Done Building Project "C:\Users\Job\Documents\Visual Studio 2013\Projects\physx_directx\physx_directx\physx_directx.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.40
+Time Elapsed 00:00:01.23
